@@ -99,3 +99,30 @@ back in normal use. This might be important for enabling/disabling self-healing
 or billing. Notification can also be used to indicate when a host is added or
 removed.
 
+High level sequence diagram
+===========================
+
+.. seqdiag::
+
+    seqdiag {
+        activation = none;
+        infra-admin  -> fenix [label = "Maintenance session for hosts", note="Start the maintenance process"];
+        fenix -> app-manager [label = "MAINTENANCE"];
+        app-manager -> fenix [label = "ACK_MAINTENANCE"];
+        fenix --> app-manager [label = "IN_SCALE", note="Optional down scale"]
+        app-manager --> fenix [label = "ACK_IN_SCALE"]
+        fenix --> app-manager [label = "PREPARE_MAINTENANCE", note="If there is not empty host Fenix makes one"]
+        app-manager --> fenix [label = "ACK_PREPARE_MAINTENANCE"]
+        fenix --> app-manager [label = "ADMIN_ACTION_DONE"]
+        === Repeated for every compute ===
+        fenix -> app-manager [label = "PLANNED_MAINTENANCE", note="If VM-s are on the host. Migrate or Live migrate"]
+        app-manager -> fenix [label = "ACK_PLANNED_MAINTENANCE"]
+        fenix --> app-manager [label = "ADMIN_ACTION_DONE"]
+        fenix --> app-manager [label = "IN_MAINTENANCE"]
+        ... Actual maintenance happens here ...
+        fenix --> app-manager [label = "MAINTENANCE_COMPLETE"]
+        === --- ===
+        fenix --> app-manager [label = "MAINTENANCE_COMPLETE", note="Maintenance is done"]
+        app-manager --> fenix [label = "ACK_MAINTENANCE_COMPLETE", note="Up scale"]
+
+    }
