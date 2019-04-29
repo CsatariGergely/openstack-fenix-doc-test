@@ -40,14 +40,16 @@ class BaseWorkflow(Thread):
         self.thg = threadgroup.ThreadGroup()
         self.timer = {}
         self.session = self._init_session(data)
-        LOG.info('%s:  session %s' % (self.session_id, self.session))
-        if len(data['hosts']):
+        self.hosts = []
+        if "hosts" in data and data['hosts']:
             # Hosts given as input, not to be discovered in workflow
             self.hosts = self.init_hosts(self.convert(data['hosts']))
         else:
-            self.hosts = []
-        # TBD API to support action plugins
-        # self.actions =
+            LOG.info('%s: No hosts as input' % self.session_id)
+        if "actions" in data:
+            self.actions = self._init_action_plugins(data["actions"])
+        else:
+            self.actions = []
         self.projects = []
         self.instances = []
         self.proj_instance_actions = {}
@@ -103,8 +105,34 @@ class BaseWorkflow(Thread):
             'maintenance_at': str(data['maintenance_at']),
             'meta': str(self.convert(data['metadata'])),
             'workflow': self.convert((data['workflow']))}
-        LOG.info('%s:  _init_session: %s' % (self.session_id, session))
+        LOG.info('Initializing maintenance session: %s' % session)
         return db_api.create_session(session)
+
+    def _init_action_plugins(self, ap_list):
+        actions = []
+        for action in ap_list:
+            adict = {
+                'session_id': self.session_id,
+                'plugin': str(action['plugin']),
+                'type': str(action['type'])}
+            if 'metadata' in action:
+                adict['meta'] = str(self.convert(action['metadata']))
+            actions.append(adict)
+        return db_api.create_action_plugins(self.session_id, actions)
+
+    def _create_action_plugin_instance(self, plugin, hostname, state=None):
+        ap_instance = {
+            'session_id': self.session_id,
+            'plugin': plugin,
+            'hostname': hostname,
+            'state': state}
+        return db_api.create_action_plugin_instance(ap_instance)
+
+    def get_action_plugins_by_type(self, ap_type):
+        aps = [ap for ap in self.actions if ap.type == ap_type]
+        if aps:
+            aps = sorted(aps, key=lambda k: k['plugin'])
+        return aps
 
     def get_compute_hosts(self):
         return [host.hostname for host in self.hosts
@@ -118,8 +146,9 @@ class BaseWorkflow(Thread):
                 instance_computes.append(instance.host)
         return [host for host in all_computes if host not in instance_computes]
 
-    def get_maintained_hosts(self):
-        return [host.hostname for host in self.hosts if host.maintained]
+    def get_maintained_hosts_by_type(self, host_type):
+        return [host.hostname for host in self.hosts if host.maintained and
+                host.type == host_type]
 
     def get_disabled_hosts(self):
         return [host for host in self.hosts if host.disabled]
@@ -287,6 +316,8 @@ class BaseWorkflow(Thread):
     def __str__(self):
         info = 'Instance info:\n'
         for host in self.hosts:
+            if host.type != 'compute':
+                continue
             info += ('%s:\n' % host.hostname)
             for project in self.project_names():
                 instance_ids = (

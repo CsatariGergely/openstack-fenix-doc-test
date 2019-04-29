@@ -120,9 +120,21 @@ def remove_session(session_id):
     return IMPL.remove_session(session_id)
 
 
-def create_action(values):
+def create_action_plugin(values):
     """Create a action from the values."""
-    return IMPL.create_action(values)
+    return IMPL.create_action_plugin(values)
+
+
+def create_action_plugins(session_id, action_dict_list):
+    return IMPL.create_action_plugins(action_dict_list)
+
+
+def create_action_plugin_instance(values):
+    return IMPL.create_action_plugin_instance(values)
+
+
+def remove_action_plugin_instance(ap_instance):
+    return IMPL.remove_action_plugin_instance(ap_instance)
 
 
 def create_host(values):
@@ -139,6 +151,21 @@ def create_hosts(session_id, hostnames):
             'type': None,
             'maintained': False,
             'disabled': False}
+        hosts.append(host)
+    return IMPL.create_hosts(hosts)
+
+
+def create_hosts_by_details(session_id, hosts_dict_list):
+    hosts = []
+    for hd in hosts_dict_list:
+        host = {}
+        host['session_id'] = session_id
+        host['hostname'] = hd["hostname"]
+        host['type'] = hd["type"]
+        host['maintained'] = hd['maintained']
+        host['disabled'] = hd['disabled']
+        if 'details' in hd:
+            host['details'] = hd['details']
         hosts.append(host)
     return IMPL.create_hosts(hosts)
 

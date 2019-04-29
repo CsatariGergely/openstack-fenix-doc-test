@@ -24,12 +24,17 @@ extensions = [
     'sphinx.ext.autodoc',
     'openstackdocstheme',
     'os_api_ref',
+    'sphinxcontrib.seqdiag',
     #'sphinx.ext.intersphinx',
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
 # execute "export SPHINX_DEBUG=1" in your terminal to disable
+
+# sphinxcontrib.seqdiag options
+seqdiag_antialias = True
+seqdiag_html_image_format = 'SVG'
 
 # The suffix of source filenames.
 source_suffix = '.rst'
